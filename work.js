@@ -34,6 +34,23 @@ try {
   console.warn('Failed to load shifts', e);
 }
 
+// If localStorage is empty, try loading shifts from a repo file (shifts.json)
+async function loadShiftsFromRepoIfEmpty() {
+  if (Object.keys(shifts).length > 0) return;
+  try {
+    const res = await fetch('shifts.json', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === 'object') {
+        shifts = data;
+        saveShiftsToStorage();
+      }
+    }
+  } catch (e) {
+    console.warn('No shifts.json available or failed to load', e);
+  }
+}
+
 // Sanitize stored holiday markers: keep only the explicit manual holiday list,
 // and remove Boxing Day and any unexpected family-day markers.
 (function sanitizeStoredHolidays() {
@@ -602,8 +619,14 @@ function renderPaySummary(periods) {
   `;
 }
 
-// Initial render
-renderMonthLabel(currentPeriodStart);
-// add sample shifts only if none exist, then render
-addSampleShiftsForPeriod(currentPeriodStart);
-renderCalendar(currentPeriodStart);
+// Initial render wrapped in async init to allow fetching shifts.json
+async function init() {
+  renderMonthLabel(currentPeriodStart);
+  await loadShiftsFromRepoIfEmpty();
+  if (Object.keys(shifts).length === 0) {
+    addSampleShiftsForPeriod(currentPeriodStart);
+  }
+  renderCalendar(currentPeriodStart);
+}
+
+init();
