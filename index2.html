@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow-x: hidden;
+        }
+
+        /* Date Module */
+        .date-module {
+            height: 20vh;
+            background-color: white;
+            border-bottom: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .scroll-button {
+            width: 40px;
+            height: 40px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .scroll-button:hover {
+            background-color: #555;
+        }
+
+        .scroll-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .slots-container {
+            flex: 1;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            margin: 0 20px;
+            overflow: hidden;
+        }
+
+        .date-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            padding: 10px;
+        }
+
+        .date-number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .date-text {
+            font-size: 14px;
+            text-align: center;
+            word-wrap: break-word;
+            max-width: 80px;
+            line-height: 1.2;
+        }
+
+        .month-label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+
+        /* Current Date Display */
+        .current-date-display {
+            text-align: center;
+            padding: 15px;
+            font-size: 18px;
+            color: #333;
+            background-color: white;
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Button Bar */
+        .button-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 40px;
+            gap: 15px;
+        }
+
+        .category-button {
+            padding: 10px 20px;
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .category-button:hover {
+            border-color: #999;
+        }
+
+        .category-button.active {
+            border-color: #333;
+            border-width: 3px;
+        }
+
+        .add-button {
+            width: 50px;
+            height: 50px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .add-button:hover {
+            background-color: #555;
+        }
+
+        /* Input Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        .overlay-content {
+            background-color: white;
+            width: 80%;
+            max-width: 800px;
+            height: 70%;
+            border-radius: 10px;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .overlay-sidebar {
+            width: 200px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+
+        .overlay-category {
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .overlay-category:hover {
+            border-color: #999;
+        }
+
+        .overlay-category.active {
+            border-color: #333;
+            border-width: 3px;
+        }
+
+        .overlay-main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .month-selector {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .month-tab {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .month-tab:hover {
+            border-color: #999;
+        }
+
+        .month-tab.active {
+            background-color: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .input-section {
+            display: none;
+        }
+
+        .input-section.active {
+            display: block;
+        }
+
+        .entry-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .entry-row input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .entry-row input:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        .day-input {
+            width: 80px;
+        }
+
+        .time-input {
+            flex: 1;
+        }
+
+        .submit-button {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            padding: 12px 30px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .submit-button:hover {
+            background-color: #555;
+        }
+
+        .close-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-overlay:hover {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Date Module -->
+    <div class="date-module">
+        <button class="scroll-button" id="scrollLeft">←</button>
+        <div class="slots-container" id="slotsContainer"></div>
+        <button class="scroll-button" id="scrollRight">→</button>
+    </div>
+
+    <!-- Current Date Display -->
+    <div class="current-date-display" id="currentDateDisplay"></div>
+
+    <!-- Button Bar -->
+    <div class="button-bar">
+        <button class="category-button active" data-category="payPeriods">Pay Periods</button>
+        <button class="category-button" data-category="shifts">Shifts</button>
+        <button class="add-button" id="addButton">+</button>
+    </div>
+
+    <!-- Input Overlay -->
+    <div class="overlay" id="overlay">
+        <div class="overlay-content">
+            <div class="overlay-sidebar">
+                <div class="overlay-category active" data-input-category="shifts">Shifts</div>
+                <div class="overlay-category" data-input-category="workout">Workout</div>
+                <div class="overlay-category" data-input-category="meals">Meals</div>
+            </div>
+            <div class="overlay-main">
+                <span class="close-overlay" id="closeOverlay">&times;</span>
+                
+                <!-- Shifts Input -->
+                <div class="input-section active" id="shiftsInput">
+                    <div class="month-selector">
+                        <div class="month-tab" data-month="prev"></div>
+                        <div class="month-tab active" data-month="current"></div>
+                        <div class="month-tab" data-month="next"></div>
+                    </div>
+                    <div id="shiftsEntries">
+                        <div class="entry-row">
+                            <input type="number" class="day-input" placeholder="Day" min="1" max="31">
+                            <input type="text" class="time-input" placeholder="Time (e.g., 6-10)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workout Input (placeholder) -->
+                <div class="input-section" id="workoutInput">
+                    <p>Workout input coming soon...</p>
+                </div>
+
+                <!-- Meals Input (placeholder) -->
+                <div class="input-section" id="mealsInput">
+                    <p>Meals input coming soon...</p>
+                </div>
+
+                <button class="submit-button" id="submitButton">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCQxR90Ldzn9xRi6kGjY3-PDQnijcP8M74",
+            authDomain: "planner-14b1f.firebaseapp.com",
+            projectId: "planner-14b1f",
+            storageBucket: "planner-14b1f.firebasestorage.app",
+            messagingSenderId: "1051139154745",
+            appId: "1:1051139154745:web:daef4eddfe0ded9c0cbee8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Current date
+        const currentDate = new Date('2026-01-13');
+        const currentYear = 2026;
+
+        // Month data
+        const monthDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        // Hardcoded pay periods
+        const payPeriods = [
+            { month: 0, day: 22 },  // Jan 22
+            { month: 1, day: 5 },   // Feb 5
+            { month: 1, day: 19 },  // Feb 19
+            { month: 2, day: 5 },   // Mar 5
+            { month: 2, day: 19 },  // Mar 19
+            { month: 3, day: 2 },   // Apr 2
+            { month: 3, day: 16 },  // Apr 16
+            { month: 3, day: 30 }   // Apr 30
+        ];
+
+        // State
+        let currentCategory = 'payPeriods';
+        let currentInputCategory = 'shifts';
+        let selectedMonth = currentDate.getMonth();
+        let scrollOffset = 0;
+        let shiftsData = [];
+
+        // Initialize
+        init();
+
+        async function init() {
+            setupEventListeners();
+            setupMonthTabs();
+            displayCurrentDate();
+            await loadShiftsFromFirebase();
+            renderDateModule();
+        }
+
+        function displayCurrentDate() {
+            const display = document.getElementById('currentDateDisplay');
+            display.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}`;
+        }
+
+        function setupEventListeners() {
+            // Category buttons
+            document.querySelectorAll('.category-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.category-button').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentCategory = btn.dataset.category;
+                    scrollOffset = 0;
+                    renderDateModule();
+                });
+            });
+
+            // Scroll buttons
+            document.getElementById('scrollLeft').addEventListener('click', () => {
+                if (scrollOffset > 0) {
+                    scrollOffset--;
+                    renderDateModule();
+                }
+            });
+
+            document.getElementById('scrollRight').addEventListener('click', () => {
+                scrollOffset++;
+                renderDateModule();
+            });
+
+            // Add button
+            document.getElementById('addButton').addEventListener('click', () => {
+                document.getElementById('overlay').classList.add('active');
+            });
+
+            // Close overlay
+            document.getElementById('closeOverlay').addEventListener('click', () => {
+                document.getElementById('overlay').classList.remove('active');
+            });
+
+            document.getElementById('overlay').addEventListener('click', (e) => {
+                if (e.target.id === 'overlay') {
+                    document.getElementById('overlay').classList.remove('active');
+                }
+            });
+
+            // Input category selection
+            document.querySelectorAll('.overlay-category').forEach(cat => {
+                cat.addEventListener('click', () => {
+                    document.querySelectorAll('.overlay-category').forEach(c => c.classList.remove('active'));
+                    cat.classList.add('active');
+                    currentInputCategory = cat.dataset.inputCategory;
+                    
+                    document.querySelectorAll('.input-section').forEach(s => s.classList.remove('active'));
+                    document.getElementById(`${currentInputCategory}Input`).classList.add('active');
+                });
+            });
+
+            // Month tabs
+            document.querySelectorAll('.month-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const monthType = tab.dataset.month;
+                    if (monthType === 'prev') {
+                        selectedMonth = (currentDate.getMonth() - 1 + 12) % 12;
+                    } else if (monthType === 'current') {
+                        selectedMonth = currentDate.getMonth();
+                    } else if (monthType === 'next') {
+                        selectedMonth = (currentDate.getMonth() + 1) % 12;
+                    }
+                    
+                    document.querySelectorAll('.month-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                });
+            });
+
+            // Dynamic entry rows
+            document.getElementById('shiftsEntries').addEventListener('input', (e) => {
+                if (e.target.classList.contains('day-input') || e.target.classList.contains('time-input')) {
+                    const rows = document.querySelectorAll('#shiftsEntries .entry-row');
+                    const lastRow = rows[rows.length - 1];
+                    const lastDayInput = lastRow.querySelector('.day-input');
+                    const lastTimeInput = lastRow.querySelector('.time-input');
+                    
+                    if (lastDayInput.value || lastTimeInput.value) {
+                        addNewEntryRow();
+                    }
+                }
+            });
+
+            // Submit button
+            document.getElementById('submitButton').addEventListener('click', submitEntries);
+        }
+
+        function setupMonthTabs() {
+            const prevMonth = (currentDate.getMonth() - 1 + 12) % 12;
+            const nextMonth = (currentDate.getMonth() + 1) % 12;
+            
+            document.querySelector('[data-month="prev"]').textContent = monthNames[prevMonth];
+            document.querySelector('[data-month="current"]').textContent = monthNames[currentDate.getMonth()];
+            document.querySelector('[data-month="next"]').textContent = monthNames[nextMonth];
+        }
+
+        function addNewEntryRow() {
+            const container = document.getElementById('shiftsEntries');
+            const newRow = document.createElement('div');
+            newRow.className = 'entry-row';
+            newRow.innerHTML = `
+                <input type="number" class="day-input" placeholder="Day" min="1" max="31">
+                <input type="text" class="time-input" placeholder="Time (e.g., 6-10)">
+            `;
+            container.appendChild(newRow);
+        }
+
+        async function submitEntries() {
+            if (currentInputCategory === 'shifts') {
+                const rows = document.querySelectorAll('#shiftsEntries .entry-row');
+                const newShifts = [];
+                
+                rows.forEach(row => {
+                    const day = row.querySelector('.day-input').value;
+                    const time = row.querySelector('.time-input').value;
+                    
+                    if (day && time) {
+                        newShifts.push({
+                            month: selectedMonth,
+                            day: parseInt(day),
+                            time: time
+                        });
+                    }
+                });
+                
+                if (newShifts.length > 0) {
+                    shiftsData.push(...newShifts);
+                    shiftsData.sort((a, b) => {
+                        if (a.month !== b.month) return a.month - b.month;
+                        return a.day - b.day;
+                    });
+                    
+                    await saveShiftsToFirebase();
+                    renderDateModule();
+                    
+                    // Reset form
+                    document.getElementById('shiftsEntries').innerHTML = `
+                        <div class="entry-row">
+                            <input type="number" class="day-input" placeholder="Day" min="1" max="31">
+                            <input type="text" class="time-input" placeholder="Time (e.g., 6-10)">
+                        </div>
+                    `;
+                    
+                    document.getElementById('overlay').classList.remove('active');
+                }
+            }
+        }
+
+        async function saveShiftsToFirebase() {
+            try {
+                await setDoc(doc(db, 'planner', 'shifts'), {
+                    data: shiftsData,
+                    updated: new Date().toISOString()
+                });
+            } catch (error) {
+                console.error('Error saving to Firebase:', error);
+            }
+        }
+
+        async function loadShiftsFromFirebase() {
+            try {
+                const docSnap = await getDoc(doc(db, 'planner', 'shifts'));
+                if (docSnap.exists()) {
+                    shiftsData = docSnap.data().data || [];
+                }
+            } catch (error) {
+                console.error('Error loading from Firebase:', error);
+            }
+        }
+
+        function renderDateModule() {
+            const container = document.getElementById('slotsContainer');
+            container.innerHTML = '';
+            
+            let entries = [];
+            
+            if (currentCategory === 'payPeriods') {
+                entries = payPeriods.map(p => ({
+                    month: p.month,
+                    day: p.day,
+                    text: ''
+                }));
+            } else if (currentCategory === 'shifts') {
+                entries = shiftsData.map(s => ({
+                    month: s.month,
+                    day: s.day,
+                    text: s.time
+                }));
+            }
+            
+            const visibleEntries = entries.slice(scrollOffset, scrollOffset + 10);
+            
+            visibleEntries.forEach((entry, index) => {
+                const slot = document.createElement('div');
+                slot.className = 'date-slot';
+                
+                // Show month label on first entry of each month
+                let showMonth = false;
+                if (index === 0 && scrollOffset > 0) {
+                    const prevEntry = entries[scrollOffset - 1];
+                    if (prevEntry && prevEntry.month !== entry.month) {
+                        showMonth = true;
+                    }
+                } else if (scrollOffset === 0 && index === 0) {
+                    showMonth = true;
+                } else if (index > 0) {
+                    const prevEntry = visibleEntries[index - 1];
+                    if (prevEntry.month !== entry.month) {
+                        showMonth = true;
+                    }
+                }
+                
+                if (showMonth) {
+                    const monthLabel = document.createElement('div');
+                    monthLabel.className = 'month-label';
+                    monthLabel.textContent = monthNames[entry.month];
+                    slot.appendChild(monthLabel);
+                }
+                
+                const number = document.createElement('div');
+                number.className = 'date-number';
+                number.textContent = entry.day;
+                slot.appendChild(number);
+                
+                if (entry.text) {
+                    const text = document.createElement('div');
+                    text.className = 'date-text';
+                    text.textContent = entry.text;
+                    slot.appendChild(text);
+                }
+                
+                container.appendChild(slot);
+            });
+            
+            // Update scroll buttons
+            document.getElementById('scrollLeft').disabled = scrollOffset === 0;
+            document.getElementById('scrollRight').disabled = scrollOffset + 10 >= entries.length;
+        }
+    </script>
+</body>
+</html>

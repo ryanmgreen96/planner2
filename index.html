@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planner - Work Module</title>
+  <link rel="stylesheet" href="work.css">
+</head>
+<body>
+  <div class="nav">
+    <span class="nav-title active">Work</span>
+    <span class="nav-title">Light</span>
+    <span class="nav-title">Food</span>
+  </div>
+  <div class="month-nav">
+    <button id="prev-month" aria-label="Previous Month">&#8592;</button>
+    <span id="month-label"></span>
+    <button id="next-month" aria-label="Next Month">&#8594;</button>
+  </div>
+  <div id="work-calendar"></div>
+  <div id="pay-summary"></div>
+
+  <div id="shift-modal" class="modal hidden">
+    <div class="modal-content">
+      <span id="close-modal">&times;</span>
+      <label for="shift-input">Enter shift (e.g., 6-11). Press Enter to save.</label>
+      <input type="text" id="shift-input" autocomplete="off" />
+    </div>
+  </div>
+
+  <script type="module" src="work.js"></script>
+</body>
+</html>
