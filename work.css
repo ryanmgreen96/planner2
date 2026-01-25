@@ -1,6 +1,7 @@
 body {
-  background: #fff;
-  color: #000;
+  /* Solid dark green background */
+  background: #2e7d32;
+  color: #fff;
   font-family: sans-serif;
   margin: 0;
   padding: 0;
@@ -202,6 +203,7 @@ html { box-sizing: border-box; overflow-x: hidden; }
   flex-direction: column;
   gap: 1rem;
   position: relative;
+  color: #000;
 }
 #close-modal {
   position: absolute;
