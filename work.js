@@ -19,6 +19,10 @@ const paySummaryEl = document.getElementById('pay-summary');
 const monthLabel = document.getElementById('month-label');
 const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
+const exportBtn = document.getElementById('export-shifts');
+const importBtn = document.getElementById('import-shifts');
+const importFileInput = document.getElementById('import-file');
+const reloadRepoBtn = document.getElementById('reload-repo-shifts');
 
 // Store shifts in-memory for now (dateStr: { shift: '6-11', hours: 5 })
 let shifts = {};
@@ -49,6 +53,58 @@ async function loadShiftsFromRepoIfEmpty() {
   } catch (e) {
     console.warn('No shifts.json available or failed to load', e);
   }
+}
+
+// Manually reload shifts from shifts.json (overwrites current in-memory/localStorage)
+async function reloadShiftsFromRepo() {
+  try {
+    const res = await fetch('shifts.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      shifts = data;
+      saveShiftsToStorage();
+      renderCalendar(currentPeriodStart);
+    }
+  } catch (e) {
+    console.warn('Failed to reload shifts.json', e);
+  }
+}
+
+// Export current shifts to a downloadable JSON file
+function exportShifts() {
+  try {
+    const blob = new Blob([JSON.stringify(shifts, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'shifts.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.warn('Export failed', e);
+  }
+}
+
+// Import shifts from a selected JSON file
+function importShiftsFromFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (data && typeof data === 'object') {
+        shifts = data;
+        saveShiftsToStorage();
+        renderCalendar(currentPeriodStart);
+      }
+    } catch (e) {
+      console.warn('Invalid JSON in imported file', e);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // Sanitize stored holiday markers: keep only the explicit manual holiday list,
@@ -474,6 +530,12 @@ nextMonthBtn.addEventListener('click', () => {
   renderMonthLabel(currentPeriodStart);
   renderCalendar(currentPeriodStart);
 });
+
+// Data tools events
+if (exportBtn) exportBtn.addEventListener('click', exportShifts);
+if (importBtn) importBtn.addEventListener('click', () => importFileInput && importFileInput.click());
+if (importFileInput) importFileInput.addEventListener('change', (e) => importShiftsFromFile(e.target.files[0]));
+if (reloadRepoBtn) reloadRepoBtn.addEventListener('click', reloadShiftsFromRepo);
 
 function openShiftModal(dateStr) {
   const modal = document.getElementById('shift-modal');
