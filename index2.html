@@ -357,22 +357,8 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- App Script (no remote export/import) -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCQxR90Ldzn9xRi6kGjY3-PDQnijcP8M74",
-            authDomain: "planner-14b1f.firebaseapp.com",
-            projectId: "planner-14b1f",
-            storageBucket: "planner-14b1f.firebasestorage.app",
-            messagingSenderId: "1051139154745",
-            appId: "1:1051139154745:web:daef4eddfe0ded9c0cbee8"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
 
         // Current date
         const currentDate = new Date('2026-01-13');
@@ -408,7 +394,6 @@
             setupEventListeners();
             setupMonthTabs();
             displayCurrentDate();
-            await loadShiftsFromFirebase();
             renderDateModule();
         }
 
@@ -549,8 +534,6 @@
                         if (a.month !== b.month) return a.month - b.month;
                         return a.day - b.day;
                     });
-                    
-                    await saveShiftsToFirebase();
                     renderDateModule();
                     
                     // Reset form
@@ -565,28 +548,7 @@
                 }
             }
         }
-
-        async function saveShiftsToFirebase() {
-            try {
-                await setDoc(doc(db, 'planner', 'shifts'), {
-                    data: shiftsData,
-                    updated: new Date().toISOString()
-                });
-            } catch (error) {
-                console.error('Error saving to Firebase:', error);
-            }
-        }
-
-        async function loadShiftsFromFirebase() {
-            try {
-                const docSnap = await getDoc(doc(db, 'planner', 'shifts'));
-                if (docSnap.exists()) {
-                    shiftsData = docSnap.data().data || [];
-                }
-            } catch (error) {
-                console.error('Error loading from Firebase:', error);
-            }
-        }
+        // Removed remote save/load; shifts are kept locally in-memory.
 
         function renderDateModule() {
             const container = document.getElementById('slotsContainer');

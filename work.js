@@ -1,17 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-// import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCQxR90Ldzn9xRi6kGjY3-PDQnijcP8M74",
-  authDomain: "planner-14b1f.firebaseapp.com",
-  projectId: "planner-14b1f",
-  storageBucket: "planner-14b1f.appspot.com",
-  messagingSenderId: "1051139154745",
-  appId: "1:1051139154745:web:daef4eddfe0ded9c0cbee8"
-};
-
-const app = initializeApp(firebaseConfig);
-// const db = getFirestore(app);
+// Removed Firebase imports and initialization; no remote export/import.
 
 
 const calendarEl = document.getElementById('work-calendar');
@@ -19,10 +6,6 @@ const paySummaryEl = document.getElementById('pay-summary');
 const monthLabel = document.getElementById('month-label');
 const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
-const exportBtn = document.getElementById('export-shifts');
-const importBtn = document.getElementById('import-shifts');
-const importFileInput = document.getElementById('import-file');
-const reloadRepoBtn = document.getElementById('reload-repo-shifts');
 
 // Store shifts in-memory for now (dateStr: { shift: '6-11', hours: 5 })
 let shifts = {};
@@ -36,75 +19,6 @@ try {
   if (saved) shifts = JSON.parse(saved);
 } catch (e) {
   console.warn('Failed to load shifts', e);
-}
-
-// If localStorage is empty, try loading shifts from a repo file (shifts.json)
-async function loadShiftsFromRepoIfEmpty() {
-  if (Object.keys(shifts).length > 0) return;
-  try {
-    const res = await fetch('shifts.json', { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && typeof data === 'object') {
-        shifts = data;
-        saveShiftsToStorage();
-      }
-    }
-  } catch (e) {
-    console.warn('No shifts.json available or failed to load', e);
-  }
-}
-
-// Manually reload shifts from shifts.json (overwrites current in-memory/localStorage)
-async function reloadShiftsFromRepo() {
-  try {
-    const res = await fetch('shifts.json', { cache: 'no-store' });
-    if (!res.ok) return;
-    const data = await res.json();
-    if (data && typeof data === 'object') {
-      shifts = data;
-      saveShiftsToStorage();
-      renderCalendar(currentPeriodStart);
-    }
-  } catch (e) {
-    console.warn('Failed to reload shifts.json', e);
-  }
-}
-
-// Export current shifts to a downloadable JSON file
-function exportShifts() {
-  try {
-    const blob = new Blob([JSON.stringify(shifts, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'shifts.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  } catch (e) {
-    console.warn('Export failed', e);
-  }
-}
-
-// Import shifts from a selected JSON file
-function importShiftsFromFile(file) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      if (data && typeof data === 'object') {
-        shifts = data;
-        saveShiftsToStorage();
-        renderCalendar(currentPeriodStart);
-      }
-    } catch (e) {
-      console.warn('Invalid JSON in imported file', e);
-    }
-  };
-  reader.readAsText(file);
 }
 
 // Sanitize stored holiday markers: keep only the explicit manual holiday list,
@@ -531,12 +445,6 @@ nextMonthBtn.addEventListener('click', () => {
   renderCalendar(currentPeriodStart);
 });
 
-// Data tools events
-if (exportBtn) exportBtn.addEventListener('click', exportShifts);
-if (importBtn) importBtn.addEventListener('click', () => importFileInput && importFileInput.click());
-if (importFileInput) importFileInput.addEventListener('change', (e) => importShiftsFromFile(e.target.files[0]));
-if (reloadRepoBtn) reloadRepoBtn.addEventListener('click', reloadShiftsFromRepo);
-
 function openShiftModal(dateStr) {
   const modal = document.getElementById('shift-modal');
   const input = document.getElementById('shift-input');
@@ -681,14 +589,8 @@ function renderPaySummary(periods) {
   `;
 }
 
-// Initial render wrapped in async init to allow fetching shifts.json
-async function init() {
-  renderMonthLabel(currentPeriodStart);
-  await loadShiftsFromRepoIfEmpty();
-  if (Object.keys(shifts).length === 0) {
-    addSampleShiftsForPeriod(currentPeriodStart);
-  }
-  renderCalendar(currentPeriodStart);
-}
-
-init();
+// Initial render
+renderMonthLabel(currentPeriodStart);
+// add sample shifts only if none exist, then render
+addSampleShiftsForPeriod(currentPeriodStart);
+renderCalendar(currentPeriodStart);
