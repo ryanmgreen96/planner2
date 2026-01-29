@@ -147,6 +147,19 @@ html { box-sizing: border-box; overflow-x: hidden; }
   color: #a00;
   font-weight: 700;
 }
+.day-box .shift-label.mark-red,
+.day-box .shift-label.mark-blue {
+  color: #fff;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 0.12rem 0.35rem;
+  display: inline-block;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%); /* center horizontally and vertically */
+}
+.day-box .shift-label.mark-red { background: #a00; }
+.day-box .shift-label.mark-blue { background: #003366; }
 .day-box:hover {
   background: #eee;
 }

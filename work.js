@@ -375,11 +375,19 @@ function renderCalendar(periodStart) {
         if (s && s.holiday) {
           box.innerHTML += `<div class=\"holiday-name\">${s.shift}</div>`;
           if (s.userShift) {
-            const cls = s.highlight ? 'shift-label alert' : 'shift-label';
+            let mark = s.highlight;
+            if (mark === true) mark = 'red';
+            let cls = 'shift-label';
+            if (mark === 'red') cls += ' mark-red';
+            else if (mark === 'blue') cls += ' mark-blue';
             box.innerHTML += `<div class=\"${cls}\">${s.userShift}</div>`;
           }
         } else if (s) {
-          const cls = s.highlight ? 'shift-label alert' : 'shift-label';
+          let mark = s.highlight;
+          if (mark === true) mark = 'red';
+          let cls = 'shift-label';
+          if (mark === 'red') cls += ' mark-red';
+          else if (mark === 'blue') cls += ' mark-blue';
           box.innerHTML += `<div class=\"${cls}\">${s.shift}</div>`;
         }
         box.addEventListener('click', () => openShiftModal(box.dataset.date));
@@ -392,7 +400,13 @@ function renderCalendar(periodStart) {
         let day = new Date(period.start);
         day.setDate(day.getDate() + w * 7 + d);
         const key = day.toISOString().slice(0, 10);
-        if (shifts[key]) weekHours += shifts[key].hours || 0;
+        if (shifts[key]) {
+          const s = shifts[key];
+          let mark = s.highlight;
+          if (mark === true) mark = 'red';
+          const add = (mark === 'blue') ? 0 : (s.hours || 0);
+          weekHours += add;
+        }
       }
       const weekPayRaw = +(weekHours * RATE).toFixed(2);
       const weekPayRounded = roundPay(weekPayRaw);
@@ -478,7 +492,12 @@ function openShiftModal(dateStr) {
   modal.classList.remove('hidden');
   const s = shifts[dateStr];
   const base = (s && s.holiday) ? (s?.userShift || '') : (s?.shift || '');
-  input.value = base + (s && s.highlight ? '//' : '');
+  let marker = '';
+  if (s && s.highlight) {
+    if (s.highlight === true || s.highlight === 'red') marker = '//';
+    else if (s.highlight === 'blue') marker = '##';
+  }
+  input.value = base + marker;
   input.focus();
   input.select();
   input.dataset.date = dateStr;
@@ -493,8 +512,10 @@ function saveShiftInput() {
   const date = input.dataset.date;
   const manual = manualHolidays();
   const isHoliday = !!manual[date];
-  const isHighlighted = /\/\/\s*$/.test(val);
-  const cleaned = val.replace(/\/\/\s*$/, '').trim();
+  const isRed = /\/\/\s*$/.test(val);
+  const isBlue = /##\s*$/.test(val);
+  const markColor = isBlue ? 'blue' : (isRed ? 'red' : null);
+  const cleaned = val.replace(/(\/\/|##)\s*$/, '').trim();
   let hours = 0;
   let shiftLabel = cleaned;
   // Accept formats:
@@ -573,10 +594,10 @@ function saveShiftInput() {
         userShift: shiftLabel,
         workedHours: worked,
         hours: +(5 + 1.5 * worked).toFixed(2),
-        highlight: isHighlighted
+        highlight: markColor || false
       };
     } else {
-      shifts[date] = { shift: shiftLabel, hours, workedHours: hours, highlight: isHighlighted };
+      shifts[date] = { shift: shiftLabel, hours, workedHours: hours, highlight: markColor || false };
     }
   } else {
     if (isHoliday) {
@@ -626,14 +647,24 @@ function renderPaySummary(periods) {
     let d = new Date(periods[0].start);
     d.setDate(d.getDate() + i);
     let key = d.toISOString().slice(0, 10);
-    if (shifts[key]) p1.hours += shifts[key].hours;
+    if (shifts[key]) {
+      const s = shifts[key];
+      let mark = s.highlight;
+      if (mark === true) mark = 'red';
+      if (mark !== 'blue') p1.hours += s.hours;
+    }
   }
   // Period 2
   for (let i = 0; i < 14; i++) {
     let d = new Date(periods[1].start);
     d.setDate(d.getDate() + i);
     let key = d.toISOString().slice(0, 10);
-    if (shifts[key]) p2.hours += shifts[key].hours;
+    if (shifts[key]) {
+      const s = shifts[key];
+      let mark = s.highlight;
+      if (mark === true) mark = 'red';
+      if (mark !== 'blue') p2.hours += s.hours;
+    }
   }
   p1.pay = +(p1.hours * rate).toFixed(2);
   p2.pay = +(p2.hours * rate).toFixed(2);
