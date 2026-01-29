@@ -114,11 +114,33 @@ function addHolidaysToShifts(periods) {
   while (cur <= viewEnd) {
     const key = cur.toISOString().slice(0,10);
     if (manual[key]) {
-      // set/override holiday entry
-      shifts[key] = { shift: manual[key], hours: 5, holiday: true };
+      // Merge/mark as holiday; preserve any user-entered shift and workedHours.
+      const existing = shifts[key] || {};
+      const worked = typeof existing.workedHours === 'number' ? existing.workedHours : 0;
+      shifts[key] = {
+        ...existing,
+        shift: manual[key], // display holiday name at top-left
+        holiday: true,
+        hours: +(5 + 1.5 * worked).toFixed(2) // payable-equivalent hours
+      };
     } else {
-      // if there is an earlier holiday marker, remove it
-      if (shifts[key] && shifts[key].holiday) delete shifts[key];
+      // if there is an earlier holiday marker, transform back to normal day
+      if (shifts[key] && shifts[key].holiday) {
+        const hadUserShift = !!shifts[key].userShift;
+        const worked = typeof shifts[key].workedHours === 'number' ? shifts[key].workedHours : 0;
+        if (hadUserShift) {
+          // restore as regular shift using userShift/workedHours, preserving highlight
+          shifts[key] = {
+            shift: shifts[key].userShift,
+            hours: +worked.toFixed(2),
+            workedHours: worked,
+            highlight: !!shifts[key].highlight
+          };
+        } else {
+          // no user shift, this was a holiday-only placeholder; remove it
+          delete shifts[key];
+        }
+      }
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -352,8 +374,13 @@ function renderCalendar(periodStart) {
         const s = shifts[box.dataset.date];
         if (s && s.holiday) {
           box.innerHTML += `<div class=\"holiday-name\">${s.shift}</div>`;
+          if (s.userShift) {
+            const cls = s.highlight ? 'shift-label alert' : 'shift-label';
+            box.innerHTML += `<div class=\"${cls}\">${s.userShift}</div>`;
+          }
         } else if (s) {
-          box.innerHTML += `<div class=\"shift-label\">${s.shift}</div>`;
+          const cls = s.highlight ? 'shift-label alert' : 'shift-label';
+          box.innerHTML += `<div class=\"${cls}\">${s.shift}</div>`;
         }
         box.addEventListener('click', () => openShiftModal(box.dataset.date));
         weekRow.appendChild(box);
@@ -449,7 +476,9 @@ function openShiftModal(dateStr) {
   const modal = document.getElementById('shift-modal');
   const input = document.getElementById('shift-input');
   modal.classList.remove('hidden');
-  input.value = shifts[dateStr]?.shift || '';
+  const s = shifts[dateStr];
+  const base = (s && s.holiday) ? (s?.userShift || '') : (s?.shift || '');
+  input.value = base + (s && s.highlight ? '//' : '');
   input.focus();
   input.select();
   input.dataset.date = dateStr;
@@ -462,8 +491,12 @@ function saveShiftInput() {
   const input = document.getElementById('shift-input');
   const val = input.value.trim();
   const date = input.dataset.date;
+  const manual = manualHolidays();
+  const isHoliday = !!manual[date];
+  const isHighlighted = /\/\/\s*$/.test(val);
+  const cleaned = val.replace(/\/\/\s*$/, '').trim();
   let hours = 0;
-  let shiftLabel = val;
+  let shiftLabel = cleaned;
   // Accept formats:
   // - single number or decimal or time (e.g. "11", "11.5", "11:15") -> treated as end (start defaults to 6)
   // - range: "7-12", "7-12.5", "6:30-14:15"
@@ -496,9 +529,9 @@ function saveShiftInput() {
     return null;
   }
 
-  if (val.length > 0) {
+  if (cleaned.length > 0) {
     // range?
-    const parts = val.split('-');
+    const parts = cleaned.split('-');
     if (parts.length === 2) {
       const a = parseTimeToken(parts[0]);
       const b = parseTimeToken(parts[1]);
@@ -511,12 +544,12 @@ function saveShiftInput() {
         shiftLabel = `${a.label}-${b.label}`;
       } else {
         // fallback: store raw text
-        shiftLabel = val;
+        shiftLabel = cleaned;
         hours = 0;
       }
     } else {
       // single token -> end time, start = 6
-      const t = parseTimeToken(val);
+      const t = parseTimeToken(cleaned);
       if (t) {
         let startVal = 6;
         let endVal = t.value;
@@ -524,15 +557,42 @@ function saveShiftInput() {
         if (endVal > startVal) hours = +(endVal - startVal).toFixed(2);
         shiftLabel = `${startVal}-${t.label}`;
       } else {
-        shiftLabel = val;
+        shiftLabel = cleaned;
         hours = 0;
       }
     }
   }
-  if (val.length > 0) {
-    shifts[date] = { shift: shiftLabel, hours };
+  if (cleaned.length > 0) {
+    if (isHoliday) {
+      const existing = shifts[date] || {};
+      const worked = hours || 0;
+      shifts[date] = {
+        ...existing,
+        shift: manual[date],
+        holiday: true,
+        userShift: shiftLabel,
+        workedHours: worked,
+        hours: +(5 + 1.5 * worked).toFixed(2),
+        highlight: isHighlighted
+      };
+    } else {
+      shifts[date] = { shift: shiftLabel, hours, workedHours: hours, highlight: isHighlighted };
+    }
   } else {
-    delete shifts[date];
+    if (isHoliday) {
+      const existing = shifts[date] || {};
+      shifts[date] = {
+        ...existing,
+        shift: manual[date],
+        holiday: true,
+        userShift: undefined,
+        workedHours: 0,
+        hours: 5,
+        highlight: false
+      };
+    } else {
+      delete shifts[date];
+    }
   }
   saveShiftsToStorage();
   document.getElementById('shift-modal').classList.add('hidden');

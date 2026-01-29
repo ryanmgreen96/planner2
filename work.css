@@ -143,6 +143,10 @@ html { box-sizing: border-box; overflow-x: hidden; }
   color: #222;
   text-align: center;
 }
+.day-box .shift-label.alert {
+  color: #a00;
+  font-weight: 700;
+}
 .day-box:hover {
   background: #eee;
 }
